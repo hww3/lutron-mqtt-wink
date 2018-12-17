@@ -1,0 +1,36 @@
+#!/bin/sh
+
+case "${1}" in
+   start)
+      logger -p info -s "Starting socat-zigbee"
+      cd /
+      # make a FIFO for log output and read logs
+      if ! [ -e /var/log/zb-log-fifo ]; then
+         mkfifo /var/log/zb-log-fifo
+         logger -t zb-stdout-stderr </var/log/zb-log-fifo &
+      fi
+      if ! (socat-zigbee -v -d -ls tcp-l:54321,reuseaddr,fork file:/dev/ttySP4,nonblock,raw,echo=0,b57600,waitlock=/var/lock/ttySP4  </dev/null >/var/log/zb-log-fifo 2>&1 &) ; then 
+         logger -p error -s "Failed to start socat-zigbee"
+      fi
+      # rm the FIFO. Its file descriptor will stay active until no process is using it. Logger will quit when the process on the write end (node) quits
+      rm /var/log/zb-log-fifo
+      
+      # It takes about 1 second for the socat to boot up - 2 is safe
+      logger -p debug -s "Sleeping 2 to let socat-zigbee startup"
+      ;;
+
+   stop)
+      logger -p info -s "Stopping socat-zigbee"
+      terminate_verify socat-zigbee
+      ;;
+
+   restart)
+      ${0} stop
+      sleep 1
+      ${0} start
+      ;;
+
+   *)
+      echo "Usage: $0 [start|stop|restart]"
+      ;;
+esac

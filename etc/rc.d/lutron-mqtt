@@ -1,0 +1,24 @@
+#!/bin/sh
+
+case "${1}" in
+   start)
+      logger -p info -s "Starting lutron-mqtt"
+      cd /root
+      pike -Mmodules lutron-mqtt.pike | logger &
+      ;;
+
+   stop)
+      logger -p info -s "Stopping lutron-mqtt"
+      terminate_verify pike
+      ;;
+
+   restart)
+      ${0} stop
+      sleep 1
+      ${0} start
+      ;;
+
+   *)
+      echo "Usage: $0 [start|stop|restart]"
+      ;;
+esac

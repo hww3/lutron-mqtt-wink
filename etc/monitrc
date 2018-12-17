@@ -1,0 +1,91 @@
+# monitrc: configure monit
+
+# use syslog system daemon to log messages with a priority assigned to each message based on the context
+set logfile syslog
+
+# specify Monit's poll cycle length and run Monit in daemon mode
+set daemon 15
+
+# set up http interface on a localhost
+#set httpd port 2812 address 127.0.0.1
+#    allow localhost
+
+# set statefile to a tmp location so it gets blown away across reboots
+set statefile /tmp/monit.state
+
+check process ntpd matching "ntpd"
+    if total memory > 2.5 MB then alert
+    start program = "/etc/rc.d/init.d/ntp start"
+    stop program = "/etc/rc.d/init.d/ntp stop"
+
+check process rsyslogd with pidfile /var/run/rsyslogd.pid
+    if total memory > 5 MB then alert
+    start program = "/etc/rc.d/init.d/logging start"
+    stop program = "/etc/rc.d/init.d/logging stop"
+
+check process mosquitto with pidfile /var/run/mosquitto.pid
+    if total memory > 2.0 MB then alert                           
+    start program = "/etc/rc.d/init.d/mosquitto start"                
+    stop program = "/etc/rc.d/init.d/mosquitto stop"
+
+check process pike matching pike
+  group wink-services
+  start program = "/etc/rc.d/init.d/lutron-mqtt start"                
+  stop program = "/etc/rc.d/init.d/lutron-mqtt stop"                  
+
+check process lutron-core with pidfile /var/run/lutron-core.pid
+    group wink-services
+    if total cpu > 80% for 8 cycles then restart
+    if 8 restarts within 40 cycles then exec "/bin/sh -c 'reboot'"
+    start program = "/etc/rc.d/init.d/lutron start"
+    stop program = "/etc/rc.d/init.d/lutron stop"
+
+check process mdnsd with pidfile /var/run/mdnsd.pid     
+    if total memory > 2.0 MB then alert         
+    start program = "/etc/rc.d/init.d/mdnsd start"
+    stop program = "/etc/rc.d/init.d/mdnsd stop"
+
+check process socat-zigbee matching "socat-zigbee"
+  group wink-services
+  if total cpu > 80% for 8 cycles then restart
+  if 8 restarts within 40 cycles then exec "/bin/sh -c 'reboot'"
+  start program = "/etc/rc.d/init.d/socat-zigbee start" 
+  stop program = "/etc/rc.d/init.d/socat-zigbee stop"
+#check process ZigBeeHACoord with pidfile /var/run/ZigBeeHACoord.pid
+#    group wink-services
+#    if total cpu > 80% for 8 cycles then restart
+#    if 8 restarts within 40 cycles then exec "/bin/sh -c 'reboot'"
+#    start program = "/etc/rc.d/init.d/zigbee start"
+#    stop program = "/etc/rc.d/init.d/zigbee stop"
+
+#check process aprond with pidfile /var/run/aprond.pid
+#    group wink-services
+#    if total cpu > 80% for 8 cycles then restart
+#    if 8 restarts within 40 cycles then exec "/bin/sh -c 'reboot'"
+#    start program = "/etc/rc.d/init.d/apron start"
+#    stop program = "/etc/rc.d/init.d/apron stop"
+#    depends on lutron-core
+#    depends on ZigBeeHACoord
+
+#check process hub with pidfile /var/run/hub.pid
+#    group wink-services
+#    start program = "/etc/rc.d/init.d/wink start"
+#    stop program = "/etc/rc.d/init.d/wink stop"
+#    depends on aprond
+
+#check process localcontrol matching "node"
+#    group wink-services
+#    if total memory > 34 MB then restart
+#    if total cpu > 80% for 8 cycles then restart
+#    if 8 restarts within 40 cycles then exec "/bin/sh -c 'reboot'"
+#    start program = "/etc/rc.d/init.d/localcontrol start"
+#    stop program = "/etc/rc.d/init.d/localcontrol stop"
+
+check system $HOST
+    # When we're under mem pressure, we may fail to spawn sh, so try several times
+    if memory > 75% for 8 cycles then exec "/bin/sh -c 'reboot'"
+    if memory > 80% then exec "/bin/sh -c 'reboot'"
+    if memory > 80% for 10 cycles then exec "/bin/sh -c 'reboot'"
+    if cpu(user) > 75% for 40 cycles then exec "/bin/sh -c 'reboot'"
+    if cpu(system) > 75% for 40 cycles then exec "/bin/sh -c 'reboot'"
+    if loadavg(5min) is greater than 3 then alert
