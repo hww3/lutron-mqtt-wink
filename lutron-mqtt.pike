@@ -249,13 +249,14 @@ mapping handle_cmd(mapping json) {
   switch(json->cmd) {
     case "GetDevices":
       return (["cmd": "ListDevices", "args": 
-	db->query("select GetProjectDevices.*,Device.LinkAddress as LinkAddress from GetProjectDevices,Device where GetProjectDevices.IntegrationId in(Select IntegrationId from GetProjectOutputDevices) and GetProjectDevices.DeviceId=Device.DeviceId")]);
+	db->query("select GetProjectDevices.*,GetAssignableObjects.AssignableObjectId as ObjectId, GetAssignableObjects.AssignableObjectId as XLinkAddress from GetProjectDevices,GetAssignableObjects where GetProjectDevices.IntegrationId in(Select IntegrationId from GetProjectOutputDevices) and GetProjectDevices.SerialNumber = GetAssignableObjects.SerialNumber")]);
+//	db->query("select GetProjectDevices.*,Device.LinkAddress as LinkAddress from GetProjectDevices,Device where GetProjectDevices.IntegrationId in(Select IntegrationId from GetProjectOutputDevices) and GetProjectDevices.DeviceId=Device.DeviceId")]);
 //	db->query("select * from GetProjectDevices where IntegrationId in(Select IntegrationId from GetProjectOutputDevices)")]);
       break;
     case "GetButtonGroups":
       return (["cmd": "ListButtonGroups", "args":
         db->query("select buttongroup.*, device.name,deviceinfo.* from buttongroup,device,deviceinfo " +
-         "where buttongroup.deviceid = device.deviceid and deviceinfo.deviceinfoid=device.DeviceInfoId")
+         "where deviceinfo.deviceclass != 134414593 and buttongroup.deviceid = device.deviceid and deviceinfo.deviceinfoid=device.DeviceInfoId")
 	]);
       break;
     case "GoToLevel":
